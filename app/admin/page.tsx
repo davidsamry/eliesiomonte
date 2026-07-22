@@ -33,6 +33,8 @@ export default function AdminPage() {
   }
 
   const handleLogout = () => {
+    // Encerra a sessão no servidor (limpa o cookie httpOnly)
+    fetch('/api/admin/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('adminId')
     localStorage.removeItem('adminEmail')
     localStorage.removeItem('adminName')

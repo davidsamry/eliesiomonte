@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
 
 const DEFAULT_TEMPLATES = [
@@ -25,7 +26,10 @@ const DEFAULT_TEMPLATES = [
   },
 ]
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const supabase = await createClient()
 
@@ -61,6 +65,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const { type, message } = body

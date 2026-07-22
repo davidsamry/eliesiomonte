@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +11,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { id } = await params
     const { full_name, specialty, is_active } = await request.json()
@@ -48,6 +52,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { id } = await params
     const { error } = await supabase

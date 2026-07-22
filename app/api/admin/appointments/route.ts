@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
 import { format, startOfDay, endOfDay } from 'date-fns'
 
 export async function GET(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const dateStr = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd')
@@ -77,6 +81,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { appointmentId, status, notes, amount } = await request.json()
 
@@ -172,6 +179,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const appointmentId = searchParams.get('id')

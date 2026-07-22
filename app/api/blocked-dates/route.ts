@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,9 @@ const supabase = createClient(
 const BARBERSHOP_ID = '550e8400-e29b-41d4-a716-446655440000'
 
 export async function GET(req: NextRequest) {
+  const auth = requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { data: blockedDates, error } = await supabase
       .from('blocked_dates')
@@ -29,6 +33,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { barber_id, start_date, end_date, reason } = await req.json()
 
@@ -69,6 +76,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

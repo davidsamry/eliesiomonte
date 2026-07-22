@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import crypto from 'crypto'
+import { verifyPassword, hashPassword } from '@/lib/auth/password'
+import {
+  SESSION_COOKIE,
+  createSessionToken,
+  sessionCookieOptions,
+} from '@/lib/auth/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,14 +38,13 @@ export async function POST(request: NextRequest) {
 
     const adminUser = admin[0]
 
-    // Valida a senha (simples comparação com hash)
-    // Em produção, use bcrypt ou similar
-    const passwordHash = crypto
-      .createHash('sha256')
-      .update(password)
-      .digest('hex')
+    // Valida a senha (scrypt com salt; aceita hash legado SHA-256 e faz upgrade)
+    const { valid, needsUpgrade } = verifyPassword(
+      password,
+      adminUser.password_hash
+    )
 
-    if (adminUser.password_hash !== passwordHash) {
+    if (!valid) {
       return NextResponse.json(
         { error: 'Credenciais inválidas' },
         { status: 401 }
@@ -48,14 +52,36 @@ export async function POST(request: NextRequest) {
     }
 
     if (!adminUser.is_active) {
+      return NextResponse.json({ error: 'Admin inativo' }, { status: 401 })
+    }
+
+    // Upgrade transparente de hash legado para scrypt.
+    if (needsUpgrade) {
+      try {
+        await supabase
+          .from('staff_users')
+          .update({ password_hash: hashPassword(password) })
+          .eq('id', adminUser.id)
+      } catch (e) {
+        console.error('[auth] Falha ao atualizar hash legado:', e)
+      }
+    }
+
+    // Cria a sessão assinada e devolve no cookie httpOnly.
+    const token = createSessionToken({
+      adminId: adminUser.id,
+      email: adminUser.email,
+    })
+
+    if (!token) {
+      console.error('[auth] SESSION_SECRET ausente — não foi possível criar sessão.')
       return NextResponse.json(
-        { error: 'Admin inativo' },
-        { status: 401 }
+        { error: 'Configuração de sessão ausente no servidor.' },
+        { status: 500 }
       )
     }
 
-    // Retorna dados do admin
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: 'Login bem-sucedido',
         adminId: adminUser.id,
@@ -64,11 +90,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
+    response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions)
+    return response
   } catch (error) {
     console.error('[v0] Erro ao fazer login admin:', error)
-    return NextResponse.json(
-      { error: 'Falha ao fazer login' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Falha ao fazer login' }, { status: 500 })
   }
 }

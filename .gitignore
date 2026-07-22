@@ -25,3 +25,6 @@ baileys_auth/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Artefatos temporários do ambiente
+_tmp_*

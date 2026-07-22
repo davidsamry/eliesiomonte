@@ -13,38 +13,42 @@ Revisão feita antes de subir o projeto. Itens abaixo divididos entre o que **j�
 - **`.env.example` completo.** Documenta `SUPABASE_SERVICE_ROLE_KEY` e `SETUP_SECRET`,
   que eram usadas no código mas não estavam documentadas.
 
+## ✅ Corrigido na 2ª rodada (autenticação)
+
+- **Sessão de admin assinada.** `POST /api/admin/login` agora emite um cookie
+  `admin_session` httpOnly assinado com HMAC (`SESSION_SECRET`), com expiração de 8h.
+  Adicionado `POST /api/admin/logout`. Libs em `lib/auth/session.ts` e
+  `lib/auth/require-admin.ts`.
+- **Hash de senha forte (scrypt + salt).** `lib/auth/password.ts` usa `scrypt` com salt
+  por usuário. Compatível com o hash legado SHA-256: valida e faz **upgrade automático**
+  no próximo login bem-sucedido. Para definir/gerar senhas:
+  `node scripts/hash-password.mjs "senha"`.
+- **Guard nas rotas sensíveis.** `requireAdmin` aplicado a `/api/admin/*`,
+  `GET /api/customers` (PII) e às rotas de gestão que usam service role
+  (`barbers`, `services`, `blocked-dates`, `notification-templates`,
+  `appointments/manual-create`, `appointments/[id]`, `barbers/[id]/availability`).
+  As leituras públicas do portal (`/api/appointments/available`, `create`, `cancel`,
+  `/api/auth/*`, `/api/customer/appointments`) permanecem abertas.
+
+> **Requer** `SESSION_SECRET` definido no ambiente de produção (veja `.env.example`).
+> Sem ele, o login retorna 500 (fail-closed) e as rotas de admin negam acesso.
+
 ## ⚠️ Precisa de atenção antes de produção
 
-### 1. Endpoints com service role sem autenticação (ALTA prioridade)
-Várias rotas usam a `SUPABASE_SERVICE_ROLE_KEY` (que **ignora o RLS**) sem checar quem
-está chamando. Ex.: `GET /api/customers` devolve **todos os clientes com telefone (PII)**
-para qualquer requisição. Mesma exposição em rotas de `barbers`, `services`,
-`blocked-dates`, `appointments/manual-create` e `appointments/[id]`.
+### 1. Credenciais de teste expostas na tela de login (MÉDIA prioridade)
+`app/admin/page.tsx` mostra `admin@eliesio.com / admin123` na UI de login. Remova esse
+bloco antes de produção e troque a senha do admin (gere o hash com o script acima).
 
-Recomendado: adicionar verificação de sessão de admin no servidor (middleware ou guard)
-antes de qualquer operação com service role, ou mover essas leituras para o cliente com
-RLS adequado.
-
-### 2. Autenticação de admin é apenas client-side (ALTA prioridade)
-`POST /api/admin/login` valida a senha e devolve os dados do admin, mas **não cria sessão
-nem token assinado**. A "sessão" fica no cliente, então as rotas de admin não têm como
-confirmar que quem chama está autenticado. Recomendado: emitir cookie de sessão
-assinado (httpOnly) e validar nas rotas `/api/admin/*`.
-
-### 3. Hash de senha fraco (MÉDIA prioridade)
-As senhas de admin usam `SHA-256` sem salt. O próprio código comenta "use bcrypt em
-produção". Recomendado: migrar para `bcrypt`/`argon2` com salt.
-
-### 4. Build ignorando erros de TypeScript (MÉDIA prioridade)
+### 2. Build ignorando erros de TypeScript (MÉDIA prioridade)
 `next.config.mjs` tem `typescript.ignoreBuildErrors: true`. Isso permite subir com erros
 de tipo escondidos. Recomendado: desligar, rodar `pnpm build` localmente, corrigir os
 erros que aparecerem e manter desligado.
 
-### 5. Rate limiting no OTP (MÉDIA prioridade)
+### 3. Rate limiting no OTP (MÉDIA prioridade)
 `request-otp` não limita a frequência de envio por telefone. Sem Twilio configurado, o
 OTP é fixo `111111` (modo teste). Garanta Twilio configurado em produção e adicione
 rate limiting para evitar abuso.
 
-### 6. `barbershop_id` fixo no código
+### 4. `barbershop_id` fixo no código
 O UUID `550e8400-...` está hardcoded em várias rotas. Funciona para uma única barbearia,
 mas dificulta multi-tenant. Considere mover para variável de ambiente.

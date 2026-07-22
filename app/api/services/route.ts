@@ -1,12 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { data: services, error } = await supabase
       .from('services')
@@ -27,6 +31,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAdmin(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { name, description, duration, price } = await request.json()
 

@@ -1,10 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -31,6 +35,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { id } = await params
     const supabase = await createClient()
