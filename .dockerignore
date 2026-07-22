@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+npm-debug.log*
+pnpm-debug.log*
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
+*.md
+.vscode
+.idea
+.DS_Store
+_tmp_*
