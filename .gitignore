@@ -1,0 +1,27 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Baileys / WhatsApp auth state (nunca versionar credenciais de sessão)
+auth_info_baileys/
+baileys_auth/
+*.session.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
