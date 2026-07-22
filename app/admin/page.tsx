@@ -77,12 +77,6 @@ export default function AdminPage() {
             <div className="bg-card rounded-xl p-8 border border-border shadow-lg">
               <AdminLogin onSuccess={handleLoginSuccess} />
             </div>
-
-            <div className="mt-8 text-center text-xs text-muted-foreground space-y-2">
-              <p>Credenciais de teste:</p>
-              <p>Email: admin@eliesio.com</p>
-              <p>Senha: admin123</p>
-            </div>
           </div>
         ) : (
           <div className="bg-card rounded-xl p-8 border border-border shadow-lg">

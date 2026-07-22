@@ -42,13 +42,12 @@ Revisão feita antes de subir o projeto. Itens abaixo divididos entre o que **j�
 - **Build passa a validar tipos.** Removido `typescript.ignoreBuildErrors` do
   `next.config.mjs`. Verifiquei o projeto inteiro com `tsc --noEmit` (strict): **0 erros**,
   incluindo as rotas de WhatsApp/Baileys.
+- **Credenciais de teste removidas.** Tirado o bloco `admin@eliesio.com / admin123` da tela
+  de login (`app/admin/page.tsx`). Lembre de trocar a senha do admin no banco — gere o hash
+  com `node scripts/hash-password.mjs "senha"`.
 
 ## ⚠️ Precisa de atenção antes de produção
 
-### 1. Credenciais de teste expostas na tela de login (MÉDIA prioridade)
-`app/admin/page.tsx` mostra `admin@eliesio.com / admin123` na UI de login. Remova esse
-bloco antes de produção e troque a senha do admin (gere o hash com o script acima).
-
-### 2. `barbershop_id` fixo no código
+### 1. `barbershop_id` fixo no código
 O UUID `550e8400-...` está hardcoded em várias rotas. Funciona para uma única barbearia,
 mas dificulta multi-tenant. Considere mover para variável de ambiente.
