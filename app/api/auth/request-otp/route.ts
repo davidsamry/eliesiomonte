@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createOTPSession } from '@/lib/auth/otp'
+import { createOTPSession, enforceOtpRateLimit } from '@/lib/auth/otp'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +9,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Número de telefone é obrigatório' },
         { status: 400 }
+      )
+    }
+
+    // Rate limiting por telefone (cooldown + limite por hora)
+    const rate = await enforceOtpRateLimit(phoneNumber)
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: rate.reason || 'Muitas solicitações.' },
+        {
+          status: 429,
+          headers: rate.retryAfterSeconds
+            ? { 'Retry-After': String(rate.retryAfterSeconds) }
+            : undefined,
+        }
       )
     }
 

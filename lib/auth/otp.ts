@@ -11,6 +11,67 @@ export function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+// Configuração de rate limiting do OTP
+const OTP_COOLDOWN_SECONDS = 60 // intervalo mínimo entre pedidos
+const OTP_MAX_PER_HOUR = 5 // máximo de pedidos por hora por telefone
+
+export interface OtpRateLimitResult {
+  ok: boolean
+  retryAfterSeconds?: number
+  reason?: string
+}
+
+/**
+ * Limita a frequência de geração de OTP por telefone, usando a própria tabela
+ * otp_sessions (persistente entre instâncias serverless).
+ * - Cooldown de OTP_COOLDOWN_SECONDS entre pedidos.
+ * - No máximo OTP_MAX_PER_HOUR pedidos por hora.
+ */
+export async function enforceOtpRateLimit(
+  phoneNumber: string
+): Promise<OtpRateLimitResult> {
+  const supabase = await createClient()
+  const now = Date.now()
+
+  // Cooldown: existe algum pedido nos últimos OTP_COOLDOWN_SECONDS?
+  const cooldownSince = new Date(now - OTP_COOLDOWN_SECONDS * 1000).toISOString()
+  const { data: recent, error: recentError } = await supabase
+    .from('otp_sessions')
+    .select('created_at')
+    .eq('phone_number', phoneNumber)
+    .gte('created_at', cooldownSince)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (!recentError && recent && recent.length > 0) {
+    const last = new Date(recent[0].created_at as string).getTime()
+    const elapsed = Math.floor((now - last) / 1000)
+    return {
+      ok: false,
+      retryAfterSeconds: Math.max(1, OTP_COOLDOWN_SECONDS - elapsed),
+      reason: 'Aguarde antes de solicitar um novo código.',
+    }
+  }
+
+  // Limite por hora
+  const hourSince = new Date(now - 60 * 60 * 1000).toISOString()
+  const { count, error: countError } = await supabase
+    .from('otp_sessions')
+    .select('*', { count: 'exact', head: true })
+    .eq('phone_number', phoneNumber)
+    .gte('created_at', hourSince)
+
+  if (!countError && typeof count === 'number' && count >= OTP_MAX_PER_HOUR) {
+    return {
+      ok: false,
+      retryAfterSeconds: 60 * 60,
+      reason: 'Muitas solicitações. Tente novamente mais tarde.',
+    }
+  }
+
+  return { ok: true }
+}
+
 // Cria uma sessão OTP no banco de dados
 export async function createOTPSession(
   phoneNumber: string
