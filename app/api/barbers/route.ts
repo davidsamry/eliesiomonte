@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { data: barbers, error } = await supabase
       .from('barbers')
       .select('*')
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
       .insert({
         full_name,
         specialty: specialty || [],
-        barbershop_id: '550e8400-e29b-41d4-a716-446655440000',
+        barbershop_id: BARBERSHOP_ID,
         is_active: true,
       })
       .select()

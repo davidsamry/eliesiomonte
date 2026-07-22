@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
 import { format, startOfDay, endOfDay } from 'date-fns'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 export async function GET(request: NextRequest) {
   const auth = requireAdmin(request)
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('appointments')
       .select('*')
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .gte('scheduled_datetime', startDate.toISOString())
       .lte('scheduled_datetime', endDate.toISOString())
 
@@ -103,7 +104,7 @@ export async function PUT(request: NextRequest) {
       .from('appointments')
       .select('status, barber_id, barbershop_id')
       .eq('id', appointmentId)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .single()
 
     console.log('[v0] Fetch current appointment result:', { fetchError: !!fetchError, hasData: !!currentAppointment })
@@ -135,7 +136,7 @@ export async function PUT(request: NextRequest) {
       .from('appointments')
       .update(updateData)
       .eq('id', appointmentId)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
 
     if (error) throw error
 
@@ -152,7 +153,7 @@ export async function PUT(request: NextRequest) {
             amount: parseFloat(revenueAmount.toString()),
             date: new Date().toISOString().split('T')[0],
             type: 'service',
-            barbershop_id: '550e8400-e29b-41d4-a716-446655440000',
+            barbershop_id: BARBERSHOP_ID,
             payment_method: 'cash',
           })
 
@@ -200,7 +201,7 @@ export async function DELETE(request: NextRequest) {
       .from('appointments')
       .select('id, barbershop_id, status')
       .eq('id', appointmentId)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .single()
 
     if (fetchError || !appointment) {
@@ -215,7 +216,7 @@ export async function DELETE(request: NextRequest) {
       .from('appointments')
       .delete()
       .eq('id', appointmentId)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
 
     if (deleteError) throw deleteError
 

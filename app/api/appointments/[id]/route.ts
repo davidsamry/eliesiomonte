@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +31,7 @@ export async function PUT(
       .from('appointments')
       .select('status, barber_id')
       .eq('id', id)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .single()
 
     if (fetchError || !currentAppointment) {
@@ -56,7 +57,7 @@ export async function PUT(
       .from('appointments')
       .update(updateData)
       .eq('id', id)
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .select()
 
     if (error) throw error
@@ -80,7 +81,7 @@ export async function PUT(
             amount: revenueAmount,
             date: new Date().toISOString().split('T')[0],
             type: 'service',
-            barbershop_id: '550e8400-e29b-41d4-a716-446655440000',
+            barbershop_id: BARBERSHOP_ID,
             payment_method: 'cash',
           })
 

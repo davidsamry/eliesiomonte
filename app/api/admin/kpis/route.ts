@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
 import { format, startOfDay, endOfDay } from 'date-fns'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 export async function GET(request: NextRequest) {
   const auth = requireAdmin(request)
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { data: revenueData, error: revenueError } = await supabase
       .from('revenue')
       .select('amount')
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .gte('date', format(startDate, 'yyyy-MM-dd'))
       .lte('date', format(endDate, 'yyyy-MM-dd'))
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     const { data: appointmentAmounts, error: appointmentAmountsError } = await supabase
       .from('appointments')
       .select('amount')
-      .eq('barbershop_id', '550e8400-e29b-41d4-a716-446655440000')
+      .eq('barbershop_id', BARBERSHOP_ID)
       .eq('status', 'completed')
       .gte('scheduled_datetime', startDate.toISOString())
       .lte('scheduled_datetime', endDate.toISOString())

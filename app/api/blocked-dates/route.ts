@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-const BARBERSHOP_ID = '550e8400-e29b-41d4-a716-446655440000'
 
 export async function GET(req: NextRequest) {
   const auth = requireAdmin(req)

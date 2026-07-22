@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyOTP } from '@/lib/auth/otp'
 import { createClient } from '@/lib/supabase/server'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
         .insert({
           phone: phoneNumber,
           full_name: '', // Será preenchido depois
-          barbershop_id: '550e8400-e29b-41d4-a716-446655440000', // UUID default para ELIESIO MONTE
+          barbershop_id: BARBERSHOP_ID, // UUID default para ELIESIO MONTE
         })
         .select('id')
 

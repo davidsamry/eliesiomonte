@@ -45,9 +45,13 @@ Revisão feita antes de subir o projeto. Itens abaixo divididos entre o que **j�
 - **Credenciais de teste removidas.** Tirado o bloco `admin@eliesio.com / admin123` da tela
   de login (`app/admin/page.tsx`). Lembre de trocar a senha do admin no banco — gere o hash
   com `node scripts/hash-password.mjs "senha"`.
+- **`barbershop_id` centralizado.** Movido para `lib/config.ts`, lido de `BARBERSHOP_ID`
+  (env) com fallback para o UUID padrão. Todas as ~15 rotas passam a importar dali.
 
 ## ⚠️ Precisa de atenção antes de produção
 
-### 1. `barbershop_id` fixo no código
-O UUID `550e8400-...` está hardcoded em várias rotas. Funciona para uma única barbearia,
-mas dificulta multi-tenant. Considere mover para variável de ambiente.
+Nada crítico pendente. Antes do deploy, apenas:
+- Defina `SESSION_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` e (se aplicável) `SETUP_SECRET`,
+  `TWILIO_*` e `BARBERSHOP_ID` no ambiente (veja `.env.example`).
+- Troque a senha do admin (hash via `scripts/hash-password.mjs`).
+- Garanta o Twilio configurado para envio real de OTP (sem ele, OTP fixo `111111`).

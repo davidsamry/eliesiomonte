@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
-
-const BARBERSHOP_ID = '550e8400-e29b-41d4-a716-446655440000'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex')

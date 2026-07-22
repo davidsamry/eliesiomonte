@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
           id: customerId,
           full_name: name,
           phone: phoneNumber,
-          barbershop_id: '550e8400-e29b-41d4-a716-446655440000',
+          barbershop_id: BARBERSHOP_ID,
         })
         .select()
 

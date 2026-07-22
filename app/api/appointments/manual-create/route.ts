@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { BARBERSHOP_ID } from '@/lib/config'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
         scheduled_datetime,
         notes,
         status: 'confirmed',
-        barbershop_id: '550e8400-e29b-41d4-a716-446655440000',
+        barbershop_id: BARBERSHOP_ID,
       })
       .select()
 
