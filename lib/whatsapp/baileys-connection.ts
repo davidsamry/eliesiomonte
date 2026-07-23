@@ -208,9 +208,25 @@ export async function sendWhatsAppMessage(phoneNumber: string, message: string):
     if (!number.startsWith('55') && (number.length === 10 || number.length === 11)) {
       number = '55' + number
     }
-    const jid = `${number}@s.whatsapp.net`
+
+    // Resolve o JID canônico no WhatsApp. Isso confirma que o número existe e
+    // corrige o "9º dígito" dos celulares brasileiros — sem isso o envio pode
+    // "dar certo" (sem erro) mas nunca entregar, por ir a um JID inexistente.
+    let jid = `${number}@s.whatsapp.net`
+    try {
+      const results = await state.sock.onWhatsApp(number)
+      const info = results?.[0]
+      if (!info?.exists) {
+        console.warn('[baileys] Número não possui WhatsApp:', number)
+        return false
+      }
+      jid = info.jid
+    } catch (checkErr) {
+      console.warn('[baileys] Falha ao verificar número, usando JID padrão:', checkErr)
+    }
+
     await state.sock.sendMessage(jid, { text: message })
-    console.log('[baileys] Mensagem enviada para', number)
+    console.log('[baileys] Mensagem enviada para', jid)
     return true
   } catch (error) {
     console.error('[baileys] Erro ao enviar mensagem:', error)
