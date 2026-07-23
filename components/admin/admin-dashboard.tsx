@@ -395,7 +395,7 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
             <p>Nenhum agendamento nesta data</p>
           </div>
         ) : (
-          <div className="space-y-4 max-h-96 overflow-y-auto">
+          <div className="space-y-3">
             {appointments.map((apt) => {
               const appointmentDate = new Date(apt.scheduled_datetime.split('+')[0])
               const formattedTime = format(appointmentDate, "HH:mm", { locale: ptBR })
@@ -411,22 +411,21 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
               const displayAmount = apt.amount || apt.services?.price || 0
               
               return (
-                <div key={apt.id} className="bg-white border border-gray-200 rounded-lg p-2 shadow-sm hover:shadow-md transition-all">
+                <div key={apt.id} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all">
                   {/* Section 1: Header */}
                   <div className="flex items-start justify-between gap-2 pb-2">
-                    <div className="flex items-start gap-1.5 flex-1">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Clock Icon and Time */}
-                      <div className="flex flex-col items-center gap-0 flex-shrink-0">
-                        <div className="bg-blue-100 rounded-full p-0.5">
-                          <Clock className="w-3 h-3 text-blue-600" />
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className="bg-blue-100 rounded-full p-1.5">
+                          <Clock className="w-4 h-4 text-blue-600" />
                         </div>
-                        <p className="text-xs font-bold text-gray-900 leading-tight">{formattedTime}</p>
+                        <p className="mt-1 text-sm font-bold text-gray-900 leading-none">{formattedTime}</p>
                       </div>
-                      
+
                       {/* Service Info */}
-                      <div className="flex-1 flex flex-col justify-start">
-                        <h3 className="text-xs font-bold text-gray-900 leading-tight">{apt.services?.name || 'Serviço'}</h3>
-                        <p className="text-xs text-gray-500 leading-tight">Corte de cabelo.</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm sm:text-base font-bold text-gray-900 leading-tight truncate">{apt.services?.name || 'Serviço'}</h3>
                       </div>
                     </div>
                     
@@ -471,24 +470,24 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
                   <div className="space-y-1.5 py-1.5">
                     {/* Cliente */}
                     <div className="flex items-center gap-1.5">
-                      <div className="bg-blue-100 rounded p-0.5 flex-shrink-0">
-                        <User className="w-3 h-3 text-blue-600" />
+                      <div className="bg-blue-100 rounded-md p-1 flex-shrink-0">
+                        <User className="w-4 h-4 text-blue-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-gray-500 font-medium leading-none">Cliente</p>
-                        <p className="text-xs font-bold text-gray-900 truncate">{apt.customers?.full_name || 'N/A'}</p>
+                        <p className="text-sm font-bold text-gray-900 truncate">{apt.customers?.full_name || 'N/A'}</p>
                       </div>
                     </div>
 
                     {/* Barbeiro + WhatsApp */}
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <div className="bg-purple-100 rounded p-0.5 flex-shrink-0">
-                          <Scissors className="w-3 h-3 text-purple-600" />
+                        <div className="bg-purple-100 rounded-md p-1 flex-shrink-0">
+                          <Scissors className="w-4 h-4 text-purple-600" />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs text-gray-500 font-medium leading-none">Barbeiro</p>
-                          <p className="text-xs font-bold text-gray-900 truncate">{apt.barbers?.full_name || 'N/A'}</p>
+                          <p className="text-sm font-bold text-gray-900 truncate">{apt.barbers?.full_name || 'N/A'}</p>
                         </div>
                       </div>
                       
@@ -515,12 +514,12 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
                   <div className="space-y-1 py-1.5">
                     {/* Display Value */}
                     <div className="flex items-center gap-1.5">
-                      <div className="bg-amber-100 rounded p-0.5 flex-shrink-0">
-                        <DollarSign className="w-3 h-3 text-amber-600" />
+                      <div className="bg-amber-100 rounded-md p-1 flex-shrink-0">
+                        <DollarSign className="w-4 h-4 text-amber-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-gray-500 font-medium leading-none">Valor</p>
-                        <p className="text-xs font-bold text-green-600 leading-tight">R$ {displayAmount.toFixed(2)}</p>
+                        <p className="text-base font-bold text-green-600 leading-tight">R$ {displayAmount.toFixed(2)}</p>
                       </div>
                     </div>
 
@@ -532,14 +531,14 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
                         defaultValue={apt.amount?.toFixed(2) || apt.services?.price?.toFixed(2) || '0.00'}
                         step="0.01"
                         min="0"
-                        className="w-full px-2 py-1 text-xs font-semibold border border-gray-300 rounded focus:border-blue-500 focus:outline-none transition-colors bg-white"
+                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
                   {/* Footer - Buttons */}
-                  <div className="flex gap-1.5 pt-1">
+                  <div className="flex gap-2 pt-2">
                     <button
                       onClick={() => {
                         try {
@@ -552,17 +551,17 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
                         }
                       }}
                       disabled={updatingId === apt.id}
-                      className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-xs rounded transition-all"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg transition-all"
                     >
-                      <Save className="w-3 h-3" />
+                      <Save className="w-4 h-4" />
                       {updatingId === apt.id ? 'Salvando...' : 'Salvar'}
                     </button>
                     <button
                       onClick={() => handleDeleteAppointment(apt.id)}
                       disabled={updatingId === apt.id}
-                      className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-xs rounded transition-all"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg transition-all"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4" />
                       {updatingId === apt.id ? 'Excluindo...' : 'Excluir'}
                     </button>
                   </div>
@@ -597,7 +596,7 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
             <p>Nenhuma notificação enviada nesta data</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-3">
             {notifications.map((notif) => (
               <div
                 key={notif.id}
