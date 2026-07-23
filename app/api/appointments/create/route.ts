@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { BARBERSHOP_ID } from '@/lib/config'
+import { sendWhatsAppMessage } from '@/lib/whatsapp/baileys-connection'
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,23 +63,38 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // Envia notificação de confirmação via API do Baileys (opcional).
-    // Usa o servidor local (mesmo container) — fetch com URL relativa não
-    // funciona no lado do servidor (Node não tem origem base).
+    // Envia a confirmação por WhatsApp DIRETAMENTE (sem HTTP interno), usando o
+    // socket compartilhado no globalThis. Não falha o agendamento se der erro.
     try {
-      const baseUrl = `http://127.0.0.1:${process.env.PORT || 3000}`
-      await fetch(`${baseUrl}/api/whatsapp/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'confirmation',
-          appointmentId: appointment?.[0]?.id,
-          phoneNumber,
-          customerName: 'Cliente',
-          serviceName: service?.[0]?.name || 'Serviço',
-          scheduledDateTime,
-          barberName: barberName || 'Barbeiro',
-        }),
+      const dt = new Date(scheduledDateTime)
+      const quando = dt.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const serviceName = service?.[0]?.name || 'seu serviço'
+      const mensagem =
+        `Olá! Seu agendamento na *ELIESIO MONTE* foi confirmado ✅\n\n` +
+        `💈 Serviço: ${serviceName}\n` +
+        `✂️ Barbeiro: ${barberName || 'Barbeiro'}\n` +
+        `📅 ${quando}\n\n` +
+        `Qualquer imprevisto, é só chamar. Até breve!`
+
+      const enviado = phoneNumber
+        ? await sendWhatsAppMessage(phoneNumber, mensagem)
+        : false
+
+      console.log('[v0] Notificação de confirmação enviada?', enviado, '->', phoneNumber)
+
+      // Registra no histórico de notificações do admin
+      await supabase.from('notifications').insert({
+        appointment_id: appointment?.[0]?.id,
+        type: 'confirmation',
+        phone_number: phoneNumber,
+        message_content: mensagem,
+        status: enviado ? 'sent' : 'failed',
+        created_at: new Date().toISOString(),
       })
     } catch (notificationError) {
       console.error('[v0] Erro ao enviar notificação:', notificationError)
