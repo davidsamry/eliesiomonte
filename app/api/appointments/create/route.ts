@@ -62,9 +62,12 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // Envia notificação de confirmação via API do Baileys (opcional)
+    // Envia notificação de confirmação via API do Baileys (opcional).
+    // Usa o servidor local (mesmo container) — fetch com URL relativa não
+    // funciona no lado do servidor (Node não tem origem base).
     try {
-      await fetch('/api/whatsapp/notify', {
+      const baseUrl = `http://127.0.0.1:${process.env.PORT || 3000}`
+      await fetch(`${baseUrl}/api/whatsapp/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

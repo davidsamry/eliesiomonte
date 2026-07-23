@@ -185,7 +185,11 @@ export async function sendWhatsAppMessage(phoneNumber: string, message: string):
   }
 
   try {
-    const number = phoneNumber.replace(/\D/g, '')
+    let number = phoneNumber.replace(/\D/g, '')
+    // Brasil: garante o DDI 55 quando ausente (10 ou 11 dígitos = DDD + número).
+    if (!number.startsWith('55') && (number.length === 10 || number.length === 11)) {
+      number = '55' + number
+    }
     const jid = `${number}@s.whatsapp.net`
     await sock.sendMessage(jid, { text: message })
     console.log('[baileys] Mensagem enviada para', number)
