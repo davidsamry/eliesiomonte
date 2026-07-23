@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import {
+  getWhatsAppSocket,
   isConnected,
   getConnectionStatus,
-  sendWhatsAppMessage,
 } from '@/lib/whatsapp/baileys-connection'
 
 /**
- * Envia uma mensagem de teste via WhatsApp para diagnosticar o envio,
- * isolado do fluxo de agendamento. Protegido por sessão de admin.
+ * Envia uma mensagem de teste via WhatsApp e retorna detalhes do envio para
+ * diagnóstico (JID resolvido, se o número existe no WhatsApp, id da mensagem).
+ * Protegido por sessão de admin.
  */
 export async function POST(request: NextRequest) {
   const auth = requireAdmin(request)
@@ -24,28 +25,57 @@ export async function POST(request: NextRequest) {
     }
 
     const status = getConnectionStatus()
-    if (!isConnected()) {
+    const sock = getWhatsAppSocket()
+    if (!sock || !isConnected()) {
       return NextResponse.json({
         success: false,
         connected: false,
         status,
-        error:
-          'O WhatsApp não está conectado no servidor (status: ' + status + ').',
+        error: `WhatsApp não conectado (status: ${status}).`,
       })
     }
 
-    const ok = await sendWhatsAppMessage(
-      phoneNumber,
-      '✅ Teste da ELIESIO MONTE — se você recebeu esta mensagem, as notificações estão funcionando!'
-    )
+    let number = phoneNumber.replace(/\D/g, '')
+    if (!number.startsWith('55') && (number.length === 10 || number.length === 11)) {
+      number = '55' + number
+    }
+
+    // Verifica o número no WhatsApp
+    let exists: boolean | null = null
+    let jid = `${number}@s.whatsapp.net`
+    try {
+      const results = await sock.onWhatsApp(number)
+      const info = results?.[0]
+      exists = info?.exists ?? false
+      if (info?.jid) jid = info.jid
+    } catch (e) {
+      exists = null // não foi possível verificar
+    }
+
+    if (exists === false) {
+      return NextResponse.json({
+        success: false,
+        connected: true,
+        status,
+        number,
+        exists,
+        error: `O número ${number} não possui conta de WhatsApp.`,
+      })
+    }
+
+    const result = await sock.sendMessage(jid, {
+      text: '✅ Teste da ELIESIO MONTE — se você recebeu esta mensagem, as notificações estão funcionando!',
+    })
 
     return NextResponse.json({
-      success: ok,
+      success: true,
       connected: true,
       status,
-      error: ok
-        ? null
-        : 'Não foi possível enviar. Verifique se o número tem WhatsApp e o formato (DDI+DDD+número).',
+      number,
+      jid,
+      exists,
+      messageId: result?.key?.id ?? null,
+      detail: `enviado • jid=${jid} • exists=${exists} • id=${result?.key?.id ?? '—'}`,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

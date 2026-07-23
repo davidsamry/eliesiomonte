@@ -28,7 +28,7 @@ export default function WhatsAppBaileysSettings() {
       setTestResult({
         ok: !!data.success,
         msg: data.success
-          ? 'Enviado! Confira o WhatsApp do número informado.'
+          ? `Enviado! ${data.detail || ''}`.trim()
           : data.error || 'Falha no envio.',
       })
     } catch {
