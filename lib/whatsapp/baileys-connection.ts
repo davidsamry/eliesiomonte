@@ -12,13 +12,29 @@ import * as path from 'path'
 // (WHATSAPP_AUTH_DIR=/data/whatsapp_auth) para não perder a conexão em redeploys.
 const AUTH_DIR = process.env.WHATSAPP_AUTH_DIR || '/tmp/baileys_auth'
 
-// Singleton global - persiste entre chamadas na mesma instância do servidor
-let sock: ReturnType<typeof makeWASocket> | null = null
-let qrCodeRaw: string | null = null          // string bruta do Baileys
-let qrCodeDataURL: string | null = null      // data:image/png base64 para o front
-let connectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected'
-let isInitializing = false
-let currentPairingCode: string | null = null
+// Estado do Baileys guardado no globalThis para ser compartilhado entre TODAS as
+// cópias deste módulo (o Next pode duplicar o módulo por rota; sem isso, a rota
+// que conecta o WhatsApp e a rota que envia a notificação teriam sockets diferentes).
+type BaileysState = {
+  sock: ReturnType<typeof makeWASocket> | null
+  qrCodeRaw: string | null
+  qrCodeDataURL: string | null
+  connectionStatus: 'disconnected' | 'connecting' | 'connected'
+  isInitializing: boolean
+  currentPairingCode: string | null
+}
+
+const globalStore = globalThis as unknown as { __baileysState?: BaileysState }
+const state: BaileysState =
+  globalStore.__baileysState ??
+  (globalStore.__baileysState = {
+    sock: null,
+    qrCodeRaw: null,
+    qrCodeDataURL: null,
+    connectionStatus: 'disconnected',
+    isInitializing: false,
+    currentPairingCode: null,
+  })
 
 // Garante que o diretório de auth existe
 function ensureAuthDir() {
@@ -33,35 +49,35 @@ function ensureAuthDir() {
  */
 export async function initializeWhatsAppConnection() {
   // Já conectado
-  if (connectionStatus === 'connected' && sock) {
-    return sock
+  if (state.connectionStatus === 'connected' && state.sock) {
+    return state.sock
   }
 
   // Já inicializando - retorna socket atual
-  if (isInitializing && sock) {
-    return sock
+  if (state.isInitializing && state.sock) {
+    return state.sock
   }
 
-  isInitializing = true
-  connectionStatus = 'connecting'
-  qrCodeRaw = null
-  qrCodeDataURL = null
+  state.isInitializing = true
+  state.connectionStatus = 'connecting'
+  state.qrCodeRaw = null
+  state.qrCodeDataURL = null
 
   console.log('[baileys] Iniciando conexão...')
 
   try {
     ensureAuthDir()
 
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
+    const { state: authState, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
     const { version } = await fetchLatestBaileysVersion()
 
     // Logger silencioso para não poluir os logs
     const logger = pino({ level: 'silent' })
 
-    sock = makeWASocket({
+    state.sock = makeWASocket({
       version,
       logger,
-      auth: state,
+      auth: authState,
       printQRInTerminal: false,
       browser: ['Chrome (Linux)', '', ''],
       syncFullHistory: false,
@@ -70,25 +86,25 @@ export async function initializeWhatsAppConnection() {
     })
 
     // Salva credenciais quando atualizam
-    sock.ev.on('creds.update', saveCreds)
+    state.sock.ev.on('creds.update', saveCreds)
 
     // Handler principal de conexão
-    sock.ev.on('connection.update', async (update) => {
+    state.sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update
 
       console.log('[baileys] connection.update ->', { connection, hasQR: !!qr })
 
       if (qr) {
-        qrCodeRaw = qr
+        state.qrCodeRaw = qr
         console.log('[baileys] QR code recebido, gerando DataURL...')
         try {
-          qrCodeDataURL = await QRCode.toDataURL(qr, {
+          state.qrCodeDataURL = await QRCode.toDataURL(qr, {
             errorCorrectionLevel: 'H',
             width: 300,
             margin: 2,
           })
-          connectionStatus = 'connecting'
-          console.log('[baileys] QR code DataURL gerado -', qrCodeDataURL?.length, 'chars')
+          state.connectionStatus = 'connecting'
+          console.log('[baileys] QR code DataURL gerado -', state.qrCodeDataURL?.length, 'chars')
         } catch (err) {
           console.error('[baileys] Erro ao converter QR para DataURL:', err)
         }
@@ -96,10 +112,10 @@ export async function initializeWhatsAppConnection() {
 
       if (connection === 'open') {
         console.log('[baileys] Conectado!')
-        connectionStatus = 'connected'
-        qrCodeRaw = null
-        qrCodeDataURL = null
-        isInitializing = false
+        state.connectionStatus = 'connected'
+        state.qrCodeRaw = null
+        state.qrCodeDataURL = null
+        state.isInitializing = false
       }
 
       if (connection === 'close') {
@@ -107,30 +123,30 @@ export async function initializeWhatsAppConnection() {
         const loggedOut = statusCode === DisconnectReason.loggedOut
         console.log('[baileys] Conexão fechada. statusCode:', statusCode, '| loggedOut:', loggedOut)
 
-        isInitializing = false
+        state.isInitializing = false
 
         if (loggedOut) {
           // Apaga credenciais e desconecta
-          connectionStatus = 'disconnected'
-          sock = null
+          state.connectionStatus = 'disconnected'
+          state.sock = null
           try { fs.rmSync(AUTH_DIR, { recursive: true }) } catch (_) {}
           console.log('[baileys] Deslogado - credenciais removidas')
-        } else if (connectionStatus !== 'connected') {
+        } else if (state.connectionStatus !== 'connected') {
           // Reconecta após pausa
-          connectionStatus = 'disconnected'
-          sock = null
+          state.connectionStatus = 'disconnected'
+          state.sock = null
           console.log('[baileys] Reconectando em 3s...')
           setTimeout(() => initializeWhatsAppConnection(), 3000)
         }
       }
     })
 
-    return sock
+    return state.sock
   } catch (error) {
     console.error('[baileys] Erro fatal na inicialização:', error)
-    connectionStatus = 'disconnected'
-    isInitializing = false
-    sock = null
+    state.connectionStatus = 'disconnected'
+    state.isInitializing = false
+    state.sock = null
     throw error
   }
 }
@@ -139,49 +155,49 @@ export async function initializeWhatsAppConnection() {
  * Retorna o QR code como DataURL (data:image/png;base64,...)
  */
 export function getQRCode(): string | null {
-  return qrCodeDataURL
+  return state.qrCodeDataURL
 }
 
 /**
  * Retorna o status atual da conexão
  */
 export function getConnectionStatus(): string {
-  return connectionStatus
+  return state.connectionStatus
 }
 
 /**
  * Verifica se está conectado
  */
 export function isConnected(): boolean {
-  return connectionStatus === 'connected' && sock !== null
+  return state.connectionStatus === 'connected' && state.sock !== null
 }
 
 /**
  * Retorna a instância da socket
  */
 export function getWhatsAppSocket() {
-  return sock
+  return state.sock
 }
 
 /**
  * Armazena código de pairing
  */
 export function setPairingCode(code: string) {
-  currentPairingCode = code
+  state.currentPairingCode = code
 }
 
 /**
  * Retorna código de pairing atual
  */
 export function getPairingCode(): string | null {
-  return currentPairingCode
+  return state.currentPairingCode
 }
 
 /**
  * Envia mensagem de texto via WhatsApp
  */
 export async function sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
-  if (!sock || connectionStatus !== 'connected') {
+  if (!state.sock || state.connectionStatus !== 'connected') {
     console.warn('[baileys] Tentativa de envio sem conexão')
     return false
   }
@@ -193,7 +209,7 @@ export async function sendWhatsAppMessage(phoneNumber: string, message: string):
       number = '55' + number
     }
     const jid = `${number}@s.whatsapp.net`
-    await sock.sendMessage(jid, { text: message })
+    await state.sock.sendMessage(jid, { text: message })
     console.log('[baileys] Mensagem enviada para', number)
     return true
   } catch (error) {
@@ -240,14 +256,14 @@ export async function sendAppointmentNotification(
  */
 export async function disconnectWhatsApp() {
   try {
-    if (sock) {
-      await sock.end(undefined)
+    if (state.sock) {
+      await state.sock.end(undefined)
     }
   } catch (_) {}
-  sock = null
-  connectionStatus = 'disconnected'
-  qrCodeRaw = null
-  qrCodeDataURL = null
-  isInitializing = false
+  state.sock = null
+  state.connectionStatus = 'disconnected'
+  state.qrCodeRaw = null
+  state.qrCodeDataURL = null
+  state.isInitializing = false
   console.log('[baileys] Desconectado')
 }
