@@ -119,8 +119,11 @@ export function BookingForm({
       return
     }
 
-    // Verifica se o barbeiro trabalha neste dia da semana
-    const selectedDateObj = new Date(selectedDate)
+    // Verifica se o barbeiro trabalha neste dia da semana.
+    // Parseia como data LOCAL (new Date("YYYY-MM-DD") seria UTC e, no fuso do
+    // Brasil, cairia no dia anterior — mostrando o dia da semana errado).
+    const [selY, selM, selD] = selectedDate.split('-').map(Number)
+    const selectedDateObj = new Date(selY, selM - 1, selD)
     const dayOfWeek = selectedDateObj.getDay() // 0 = domingo, 1 = segunda, etc.
 
     const barberWorkingDays = (barberAvailability || []).filter(
@@ -323,13 +326,14 @@ export function BookingForm({
                     selectedDate <= blocked.end_date
                 )
 
-                const selectedDateObj = new Date(selectedDate)
+                const [my, mm, md] = selectedDate.split('-').map(Number)
+                const selectedDateObj = new Date(my, mm - 1, md)
                 const dayOfWeek = selectedDateObj.getDay()
                 const barberWorkingDays = (barberAvailability || []).filter(
                   (avail) => avail.barber_id === selectedBarber
                 )
                 const isWorkingDay = barberWorkingDays.some(
-                  (avail) => avail.day_of_week === dayOfWeek
+                  (avail) => avail.day_of_week === dayOfWeek && avail.is_available
                 )
 
                 if (isDateBlocked) {
