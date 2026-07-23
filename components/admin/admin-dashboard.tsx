@@ -204,25 +204,25 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Painel Admin</h2>
-          <p className="text-muted-foreground">Bem-vindo, {adminName}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Painel Admin</h2>
+          <p className="truncate text-sm text-muted-foreground">Bem-vindo, {adminName}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={() => router.push('/settings')}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-medium transition"
+            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
             title="Configurar notificações WhatsApp"
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">WhatsApp</span>
           </button>
           <button
             onClick={onLogout}
-            className="text-sm text-primary hover:underline font-medium"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             Sair
           </button>
@@ -241,42 +241,27 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
         const tomorrow = addDays(1)
 
         const btnClass = (active: boolean) =>
-          `px-3 py-1 rounded-lg text-sm font-semibold transition h-9 ${
+          `h-10 rounded-lg px-4 text-sm font-semibold transition ${
             active
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-card border border-border hover:bg-accent'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-card border border-border text-foreground hover:bg-accent'
           }`
 
         return (
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-sm font-semibold text-foreground">Data:</label>
-            <div className="flex gap-2 items-center flex-wrap">
-              <button onClick={() => setSelectedDate(today)} className={btnClass(selectedDate === today)}>
-                Hoje
-              </button>
-              <button onClick={() => setSelectedDate(tomorrow)} className={btnClass(selectedDate === tomorrow)}>
-                Amanhã
-              </button>
-              {[2, 3, 4, 5, 6].map((n) => {
-                const d = addDays(n)
-                const label = format(new Date(d + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-                return (
-                  <button key={n} onClick={() => setSelectedDate(d)} className={btnClass(selectedDate === d)}>
-                    {label}
-                  </button>
-                )
-              })}
-              <div className="flex items-center gap-1">
-                <label htmlFor="date-picker" className="text-xs text-muted-foreground font-medium">Ou:</label>
-                <input
-                  id="date-picker"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-2 py-1 text-sm border border-border rounded-lg bg-card hover:bg-accent transition cursor-pointer h-9"
-                />
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => setSelectedDate(today)} className={btnClass(selectedDate === today)}>
+              Hoje
+            </button>
+            <button onClick={() => setSelectedDate(tomorrow)} className={btnClass(selectedDate === tomorrow)}>
+              Amanhã
+            </button>
+            <input
+              id="date-picker"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="h-10 cursor-pointer rounded-lg border border-border bg-card px-3 text-sm text-foreground transition hover:bg-accent"
+            />
           </div>
         )
       })()}
@@ -335,67 +320,29 @@ export function AdminDashboard({ adminName, onLogout }: AdminDashboardProps) {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('appointments')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'appointments'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Agendamentos
-        </button>
-        <button
-          onClick={() => setActiveTab('notifications')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'notifications'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Notificações
-        </button>
-        <button
-          onClick={() => setActiveTab('manual-booking')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'manual-booking'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Novo Agendamento
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'settings'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Configurações
-        </button>
-        <button
-          onClick={() => setActiveTab('availability')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'availability'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Disponibilidades
-        </button>
-        <button
-          onClick={() => setActiveTab('notification-templates')}
-          className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition min-h-10 whitespace-nowrap ${
-            activeTab === 'notification-templates'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Templates de Notificações
-        </button>
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-1 border-b border-border">
+          {([
+            { id: 'appointments', label: 'Agendamentos' },
+            { id: 'notifications', label: 'Notificações' },
+            { id: 'manual-booking', label: 'Novo Agend.' },
+            { id: 'settings', label: 'Configurações' },
+            { id: 'availability', label: 'Disponibilidades' },
+            { id: 'notification-templates', label: 'Templates' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Appointments Management */}

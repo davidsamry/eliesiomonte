@@ -62,7 +62,7 @@ export default function AdminPage() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
         {!isAuthenticated ? (
           <div className="max-w-md mx-auto">
             <div className="text-center mb-12">
@@ -79,7 +79,7 @@ export default function AdminPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-card rounded-xl p-8 border border-border shadow-lg">
+          <div className="bg-card rounded-xl p-4 sm:p-8 border border-border shadow-lg">
             <AdminDashboard adminName={adminName} onLogout={handleLogout} />
           </div>
         )}
