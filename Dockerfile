@@ -17,13 +17,22 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# As variáveis NEXT_PUBLIC_* são embutidas no bundle do cliente em tempo de BUILD.
-# Passe-as como build args no EasyPanel (Build > Args) OU deixe o EasyPanel
-# expor as env vars do serviço para o build.
+# As NEXT_PUBLIC_* são embutidas no bundle do cliente em tempo de BUILD.
+# A SUPABASE_SERVICE_ROLE_KEY é necessária no build porque algumas rotas criam
+# o cliente Supabase no escopo do módulo (avaliado durante "collect page data").
+# O EasyPanel repassa as env vars do serviço como --build-arg automaticamente.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG SUPABASE_SERVICE_ROLE_KEY
+ARG SESSION_SECRET
+ARG SETUP_SECRET
+ARG BARBERSHOP_ID
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+ENV SESSION_SECRET=$SESSION_SECRET
+ENV SETUP_SECRET=$SETUP_SECRET
+ENV BARBERSHOP_ID=$BARBERSHOP_ID
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm build
