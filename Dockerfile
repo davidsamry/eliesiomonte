@@ -44,16 +44,18 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+# Caminho persistente para a sessão do WhatsApp/Baileys (monte um volume em /data).
+ENV WHATSAPP_AUTH_DIR=/data/whatsapp_auth
 
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+# Diretório do volume persistente
+RUN mkdir -p /data/whatsapp_auth
 
 # Artefatos do build standalone
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-USER nextjs
+# Executa como root para poder escrever no volume montado em /data.
 EXPOSE 3000
 
 CMD ["node", "server.js"]

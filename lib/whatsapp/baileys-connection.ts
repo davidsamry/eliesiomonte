@@ -8,7 +8,9 @@ import pino from 'pino'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const AUTH_DIR = '/tmp/baileys_auth'
+// Caminho da sessão do WhatsApp. Em produção, aponte para um volume persistente
+// (WHATSAPP_AUTH_DIR=/data/whatsapp_auth) para não perder a conexão em redeploys.
+const AUTH_DIR = process.env.WHATSAPP_AUTH_DIR || '/tmp/baileys_auth'
 
 // Singleton global - persiste entre chamadas na mesma instância do servidor
 let sock: ReturnType<typeof makeWASocket> | null = null
