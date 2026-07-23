@@ -73,10 +73,12 @@ export function BookingForm({
   }, [])
 
   useEffect(() => {
-    if (selectedBarber && selectedDate) {
+    if (selectedBarber && selectedDate && selectedService) {
       loadTimeSlots()
+    } else {
+      setTimeSlots([])
     }
-  }, [selectedBarber, selectedDate, blockedDates, appointments, barberAvailability])
+  }, [selectedBarber, selectedDate, selectedService, blockedDates, appointments, barberAvailability, services])
 
   const loadInitialData = async () => {
     try {
@@ -104,7 +106,32 @@ export function BookingForm({
   }
 
   const loadTimeSlots = () => {
-    if (!selectedDate || !selectedBarber) return
+    if (!selectedDate || !selectedBarber || !selectedService) {
+      setTimeSlots([])
+      return
+    }
+
+    // Duração do serviço escolhido (minutos)
+    const serviceDuration =
+      services.find((s) => s.id === selectedService)?.duration || 30
+
+    // Mapa id do serviço -> duração, para calcular quanto cada agendamento ocupa
+    const serviceDurations: Record<string, number> = {}
+    for (const s of services) serviceDurations[s.id] = s.duration || 30
+
+    // Intervalos ocupados (em minutos a partir da meia-noite) neste dia/barbeiro
+    const busyIntervals: { start: number; end: number }[] = []
+    for (const apt of appointments || []) {
+      if (apt.barber_id !== selectedBarber) continue
+      if (apt.status !== 'confirmed' && apt.status !== 'pending') continue
+      const norm = String(apt.scheduled_datetime || '').split('+')[0].split('.')[0]
+      if (!norm.startsWith(selectedDate)) continue
+      const timePart = norm.split('T')[1] || '00:00:00'
+      const [ah, am] = timePart.split(':').map(Number)
+      const aptStart = ah * 60 + am
+      const aptDur = serviceDurations[apt.service_id as string] || 30
+      busyIntervals.push({ start: aptStart, end: aptStart + aptDur })
+    }
 
     // Verifica se o dia está bloqueado para este barbeiro
     const isDateBlocked = (blockedDates || []).some(
@@ -148,51 +175,52 @@ export function BookingForm({
     }
 
     const slots: TimeSlot[] = []
-    
-    // Parse dos horários
+
     const [startHour, startMin] = dayAvailability.start_time.split(':').map(Number)
     const [endHour, endMin] = dayAvailability.end_time.split(':').map(Number)
-    const breakStart = dayAvailability.break_start ? dayAvailability.break_start.split(':').map(Number) : null
-    const breakEnd = dayAvailability.break_end ? dayAvailability.break_end.split(':').map(Number) : null
+    const workStart = startHour * 60 + startMin
+    const workEnd = endHour * 60 + endMin
+    const bStart = dayAvailability.break_start
+      ? dayAvailability.break_start.split(':').map(Number)
+      : null
+    const bEnd = dayAvailability.break_end
+      ? dayAvailability.break_end.split(':').map(Number)
+      : null
+    const breakStart = bStart ? bStart[0] * 60 + bStart[1] : null
+    const breakEnd = bEnd ? bEnd[0] * 60 + bEnd[1] : null
 
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute of [0, 30]) {
-        // Pula minutos se for depois do horário final
-        if (hour === endHour && minute >= endMin) continue
+    // Para o dia de hoje, não oferecer horários que já passaram
+    const now = new Date()
+    const isToday =
+      now.getFullYear() === selY &&
+      now.getMonth() === selM - 1 &&
+      now.getDate() === selD
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
-        // Pula se for pausa de almoço
-        if (breakStart && breakEnd) {
-          const currentTimeInMinutes = hour * 60 + minute
-          const breakStartMinutes = breakStart[0] * 60 + breakStart[1]
-          const breakEndMinutes = breakEnd[0] * 60 + breakEnd[1]
-          
-          if (currentTimeInMinutes >= breakStartMinutes && currentTimeInMinutes < breakEndMinutes) {
-            continue
-          }
-        }
+    const STEP = 30 // início dos horários a cada 30 min
+    // O serviço inteiro precisa caber antes do fim do expediente
+    for (let start = workStart; start + serviceDuration <= workEnd; start += STEP) {
+      const end = start + serviceDuration
 
-        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-        
-        // Verifica se o horário específico está agendado (confirmado ou pendente)
-        const slotKey = `${selectedDate}T${timeStr}` // ex.: "2026-07-23T18:00"
-        const isBooked = (appointments || []).some((apt) => {
-          if (apt.barber_id !== selectedBarber) return false
-          if (apt.status !== 'confirmed' && apt.status !== 'pending') return false
-          // Normaliza: remove offset (+00:00) e fração → "2026-07-23T18:00:00"
-          const norm = String(apt.scheduled_datetime || '')
-            .split('+')[0]
-            .split('.')[0]
-          return norm.startsWith(slotKey)
-        })
+      if (isToday && start <= nowMinutes) continue
 
-        // Só adiciona ao array se o horário não está agendado
-        if (!isBooked) {
-          slots.push({
-            time: timeStr,
-            available: true,
-          })
-        }
+      // Não pode cruzar a pausa (ex.: almoço)
+      if (
+        breakStart !== null &&
+        breakEnd !== null &&
+        start < breakEnd &&
+        end > breakStart
+      ) {
+        continue
       }
+
+      // Não pode sobrepor outro agendamento do barbeiro
+      const overlaps = busyIntervals.some((iv) => start < iv.end && end > iv.start)
+      if (overlaps) continue
+
+      const hh = String(Math.floor(start / 60)).padStart(2, '0')
+      const mm = String(start % 60).padStart(2, '0')
+      slots.push({ time: `${hh}:${mm}`, available: true })
     }
 
     setTimeSlots(slots)
@@ -296,26 +324,52 @@ export function BookingForm({
         />
       </div>
 
-      {/* Step 3: Horário (ATIVADO APÓS DATA) */}
+      {/* Step 3: Serviço (define a duração para calcular os horários) */}
+      <div>
+        <label className="block text-xs sm:text-sm font-semibold mb-2 sm:mb-3 text-foreground flex items-center gap-2">
+          <Scissors className="w-4 sm:w-5 h-4 sm:h-5 text-primary" />
+          3. Serviço
+        </label>
+        <select
+          value={selectedService}
+          onChange={(e) => {
+            setSelectedService(e.target.value)
+            setSelectedTime('')
+          }}
+          className="w-full px-3 sm:px-4 py-3 text-sm sm:text-base border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-card h-12"
+          disabled={loading || !selectedDate}
+        >
+          <option value="">Selecione um serviço</option>
+          {services.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Step 4: Horário (calculado pela duração do serviço) */}
       <div>
         <label className="block text-xs sm:text-sm font-semibold mb-2 sm:mb-3 text-foreground flex items-center gap-2">
           <Clock className="w-4 sm:w-5 h-4 sm:h-5 text-accent" />
-          3. Horário Disponível
+          4. Horário Disponível
         </label>
         <select
           value={selectedTime}
           onChange={(e) => setSelectedTime(e.target.value)}
           className="w-full px-3 sm:px-4 py-3 text-sm sm:text-base border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-card h-12"
-          disabled={loading || !selectedDate}
+          disabled={loading || !selectedDate || !selectedService}
         >
-          <option value="">Escolha um horário</option>
+          <option value="">
+            {selectedService ? 'Escolha um horário' : 'Escolha o serviço primeiro'}
+          </option>
           {availableTimeSlots.map((slot) => (
             <option key={slot.time} value={slot.time}>
               {slot.time}
             </option>
           ))}
         </select>
-        {selectedDate && availableTimeSlots.length === 0 && (
+        {selectedService && selectedDate && availableTimeSlots.length === 0 && (
           <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
             <p className="text-sm text-orange-700 font-semibold">
               {(() => {
@@ -341,33 +395,12 @@ export function BookingForm({
                 } else if (!isWorkingDay) {
                   return 'Indisponível - Barbeiro não trabalha neste dia'
                 } else {
-                  return 'Indisponível - Todos os horários estão ocupados'
+                  return 'Sem horários que comportem este serviço nesta data'
                 }
               })()}
             </p>
           </div>
         )}
-      </div>
-
-      {/* Step 4: Serviço */}
-      <div>
-        <label className="block text-xs sm:text-sm font-semibold mb-2 sm:mb-3 text-foreground flex items-center gap-2">
-          <Scissors className="w-4 sm:w-5 h-4 sm:h-5 text-primary" />
-          4. Serviço
-        </label>
-        <select
-          value={selectedService}
-          onChange={(e) => setSelectedService(e.target.value)}
-          className="w-full px-3 sm:px-4 py-3 text-sm sm:text-base border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-card h-12"
-          disabled={loading}
-        >
-          <option value="">Selecione um serviço</option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Step 5: Notas */}

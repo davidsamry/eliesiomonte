@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       barber_id: string
       scheduled_datetime: string
       status: string
+      service_id: string | null
     }[] = []
     try {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
         : supabase
       const { data, error } = await apptClient
         .from('appointments')
-        .select('barber_id, scheduled_datetime, status')
+        .select('barber_id, scheduled_datetime, status, service_id')
         .gte('scheduled_datetime', `${startDate}T00:00:00`)
         .lte('scheduled_datetime', `${endDate}T23:59:59`)
         .in('status', ['pending', 'confirmed'])
