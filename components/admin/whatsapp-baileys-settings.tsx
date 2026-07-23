@@ -11,6 +11,33 @@ export default function WhatsAppBaileysSettings() {
   const [pollCount, setPollCount] = useState(0)
   const MAX_POLL_ATTEMPTS = 10 // Máximo de 10 tentativas de polling (5 minutos)
 
+  const [testPhone, setTestPhone] = useState('')
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const sendTest = async () => {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/whatsapp/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: testPhone }),
+      })
+      const data = await res.json()
+      setTestResult({
+        ok: !!data.success,
+        msg: data.success
+          ? 'Enviado! Confira o WhatsApp do número informado.'
+          : data.error || 'Falha no envio.',
+      })
+    } catch {
+      setTestResult({ ok: false, msg: 'Erro de rede ao testar.' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
   // Busca QR code
   const fetchQRCode = async (isInitial = false) => {
     try {
@@ -161,6 +188,41 @@ export default function WhatsAppBaileysSettings() {
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Desconectar
           </button>
+
+          {/* Teste de envio */}
+          <div className="mt-6 border-t border-green-200 pt-5 text-left dark:border-green-900">
+            <label className="block text-sm font-medium text-foreground">
+              Testar envio de mensagem
+            </label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Digite um número com DDI e DDD (ex.: 5588999999999) para enviar um teste.
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="5588999999999"
+                className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+              />
+              <button
+                onClick={sendTest}
+                disabled={testing || !testPhone}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+              >
+                {testing && <Loader2 className="h-4 w-4 animate-spin" />}
+                Enviar teste
+              </button>
+            </div>
+            {testResult && (
+              <p
+                className={`mt-2 text-sm ${
+                  testResult.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600'
+                }`}
+              >
+                {testResult.msg}
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-background p-6">
