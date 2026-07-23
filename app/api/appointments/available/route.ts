@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { addDays, format, parseISO } from 'date-fns'
 
 export async function GET(request: NextRequest) {
@@ -28,15 +29,31 @@ export async function GET(request: NextRequest) {
 
     if (servicesError) throw servicesError
 
-    // Obtém agendamentos no período
-    const { data: appointments, error: appointmentsError } = await supabase
-      .from('appointments')
-      .select('*')
-      .gte('scheduled_datetime', `${startDate}T00:00:00`)
-      .lte('scheduled_datetime', `${endDate}T23:59:59`)
-      .in('status', ['pending', 'confirmed'])
-
-    if (appointmentsError) throw appointmentsError
+    // Agendamentos do período. Lê com a service role para enxergar TODOS os
+    // agendamentos (o RLS pode esconder os de outros clientes), retornando
+    // apenas os campos necessários à disponibilidade — sem dados pessoais.
+    let appointments: {
+      barber_id: string
+      scheduled_datetime: string
+      status: string
+    }[] = []
+    try {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      const apptClient = serviceKey
+        ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+        : supabase
+      const { data, error } = await apptClient
+        .from('appointments')
+        .select('barber_id, scheduled_datetime, status')
+        .gte('scheduled_datetime', `${startDate}T00:00:00`)
+        .lte('scheduled_datetime', `${endDate}T23:59:59`)
+        .in('status', ['pending', 'confirmed'])
+      if (error) throw error
+      appointments = (data as typeof appointments) || []
+    } catch (e) {
+      console.error('[v0] Erro ao obter agendamentos p/ disponibilidade:', e)
+      appointments = []
+    }
 
     // Obtém bloqueios de data
     const { data: blockedDates, error: blockedError } = await supabase

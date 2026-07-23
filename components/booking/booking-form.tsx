@@ -171,13 +171,16 @@ export function BookingForm({
         const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
         
         // Verifica se o horário específico está agendado (confirmado ou pendente)
-        const isBooked = (appointments || []).some(
-          (apt) =>
-            apt.barber_id === selectedBarber &&
-            apt.scheduled_datetime?.startsWith(selectedDate) &&
-            apt.scheduled_datetime?.includes(timeStr) &&
-            (apt.status === 'confirmed' || apt.status === 'pending')
-        )
+        const slotKey = `${selectedDate}T${timeStr}` // ex.: "2026-07-23T18:00"
+        const isBooked = (appointments || []).some((apt) => {
+          if (apt.barber_id !== selectedBarber) return false
+          if (apt.status !== 'confirmed' && apt.status !== 'pending') return false
+          // Normaliza: remove offset (+00:00) e fração → "2026-07-23T18:00:00"
+          const norm = String(apt.scheduled_datetime || '')
+            .split('+')[0]
+            .split('.')[0]
+          return norm.startsWith(slotKey)
+        })
 
         // Só adiciona ao array se o horário não está agendado
         if (!isBooked) {

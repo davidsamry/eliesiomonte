@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { BARBERSHOP_ID } from '@/lib/config'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/baileys-connection'
 
@@ -31,12 +32,18 @@ export async function POST(request: NextRequest) {
       .eq('id', serviceId)
       .limit(1)
 
-    // Verifica se o barbeiro já tem agendamento confirmado neste horário
-    const { data: conflictingAppointment } = await supabase
+    // Verifica conflito de horário para o barbeiro. Usa a service role para
+    // enxergar agendamentos de QUALQUER cliente (o RLS pode esconder os demais),
+    // considerando tanto 'confirmed' quanto 'pending'.
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const conflictClient = serviceKey
+      ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+      : supabase
+    const { data: conflictingAppointment } = await conflictClient
       .from('appointments')
       .select('id')
       .eq('barber_id', barberId)
-      .eq('status', 'confirmed')
+      .in('status', ['pending', 'confirmed'])
       .eq('scheduled_datetime', scheduledDateTime)
       .limit(1)
 
