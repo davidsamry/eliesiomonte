@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, CheckCircle2, AlertCircle, QrCode } from 'lucide-react'
+import { Loader2, CheckCircle2, QrCode, Info, Smartphone } from 'lucide-react'
 
 export default function WhatsAppBaileysSettings() {
   const [qrCode, setQrCode] = useState<string | null>(null)
@@ -98,81 +98,121 @@ export default function WhatsAppBaileysSettings() {
     }
   }
 
+  const statusBadge = {
+    connected: {
+      label: 'Conectado',
+      className: 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-400',
+      dot: 'bg-green-500',
+    },
+    connecting: {
+      label: 'Conectando',
+      className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400',
+      dot: 'bg-blue-500 animate-pulse',
+    },
+    disconnected: {
+      label: 'Desconectado',
+      className: 'bg-muted text-muted-foreground',
+      dot: 'bg-amber-500',
+    },
+  }[status]
+
   return (
-    <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
-      <div className="flex items-center gap-2">
-        <QrCode className="w-5 h-5" />
-        <h3 className="font-semibold">WhatsApp - Baileys (Gratuito)</h3>
-      </div>
-
-
-
-      {/* Status */}
-      <div className="p-3 rounded-lg bg-background">
-        <div className="flex items-center gap-2">
-          {status === 'connected' && (
-            <>
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-green-600">Conectado ✅</span>
-            </>
-          )}
-          {status === 'connecting' && (
-            <>
-              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-              <span className="text-sm font-medium text-blue-600">Conectando...</span>
-            </>
-          )}
-          {status === 'disconnected' && (
-            <>
-              <AlertCircle className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-amber-600">Desconectado</span>
-            </>
-          )}
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <QrCode className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="font-semibold leading-tight text-foreground">
+              WhatsApp — Baileys
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Conecte seu número como bot, grátis e sem limites
+            </p>
+          </div>
         </div>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${statusBadge.className}`}
+        >
+          <span className={`h-2 w-2 rounded-full ${statusBadge.dot}`} />
+          {statusBadge.label}
+        </span>
       </div>
 
-      {/* QR Code */}
-      {qrCode && status === 'connecting' && (
-        <div className="flex flex-col items-center gap-3 p-4 bg-background rounded-lg">
-          <img src={qrCode} alt="QR Code" className="w-48 h-48 border-2 border-border rounded" />
-          <p className="text-xs text-center text-foreground/70">
-            Escaneie com seu WhatsApp pessoal
+      {/* Painel principal por estado */}
+      {status === 'connected' ? (
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center dark:border-green-900 dark:bg-green-950/30">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          </div>
+          <p className="mt-4 text-base font-semibold text-green-700 dark:text-green-400">
+            WhatsApp conectado
           </p>
-        </div>
-      )}
-
-      {/* Mensagem */}
-      {message && (
-        <p className="text-sm text-foreground/70">{message}</p>
-      )}
-
-      {/* Botões */}
-      <div className="flex gap-2">
-        {status !== 'connected' ? (
-          <button
-            onClick={() => fetchQRCode(true)}
-            disabled={loading}
-            className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Gerando...' : 'Gerar QR Code'}
-          </button>
-        ) : (
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+            Tudo pronto — as confirmações de agendamento serão enviadas automaticamente.
+          </p>
           <button
             onClick={handleDisconnect}
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 disabled:opacity-50 transition"
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
           >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Desconectar
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-background p-6">
+          {qrCode && status === 'connecting' ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+                <img
+                  src={qrCode}
+                  alt="QR Code para conectar o WhatsApp"
+                  className="h-64 w-64"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Smartphone className="h-4 w-4 text-primary" />
+                <span>
+                  WhatsApp → <strong className="text-foreground">Aparelhos conectados</strong> → Conectar um aparelho
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <QrCode className="h-7 w-7" />
+              </div>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                Gere um QR code e escaneie com o WhatsApp do celular para conectar.
+              </p>
+            </div>
+          )}
 
-      {/* Informações */}
-      <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-        <p className="text-xs text-blue-900 dark:text-blue-100">
-          <strong>ℹ️ Baileys:</strong> Usa seu próprio WhatsApp como bot. Totalmente gratuito, sem limites.
-        </p>
+          {message && (
+            <p className="mt-4 text-center text-xs text-muted-foreground">{message}</p>
+          )}
+
+          <button
+            onClick={() => fetchQRCode(true)}
+            disabled={loading}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? 'Gerando...' : qrCode ? 'Gerar novo QR Code' : 'Gerar QR Code'}
+          </button>
+        </div>
+      )}
+
+      {/* Informação */}
+      <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          <strong>Baileys:</strong> usa seu próprio número como bot — grátis e sem limites.
+          A sessão fica salva e se mantém conectada mesmo após reinícios.
+        </span>
       </div>
     </div>
   )

@@ -10,62 +10,53 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('whatsapp')
   const [whatsappConnected, setWhatsappConnected] = useState(false)
 
+  const tabs = [
+    { id: 'whatsapp', label: 'WhatsApp' },
+    { id: 'general', label: 'Geral' },
+    { id: 'billing', label: 'Faturamento' },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Settings className="w-8 h-8" />
-            Configurações
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie as configurações da sua barbearia
-          </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Settings className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie as configurações da sua barbearia
+            </p>
+          </div>
         </div>
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg transition min-h-10"
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
           title="Voltar para o painel admin"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Voltar</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="bg-card border border-border rounded-lg">
-        <div className="flex border-b border-border">
-          <button
-            onClick={() => setActiveTab('whatsapp')}
-            className={`flex-1 px-4 py-3 font-semibold text-sm transition ${
-              activeTab === 'whatsapp'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={() => setActiveTab('general')}
-            className={`flex-1 px-4 py-3 font-semibold text-sm transition ${
-              activeTab === 'general'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Geral
-          </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`flex-1 px-4 py-3 font-semibold text-sm transition ${
-              activeTab === 'billing'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Faturamento
-          </button>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex border-b border-border p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
