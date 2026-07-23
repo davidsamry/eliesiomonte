@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     try {
       const results = await sock.onWhatsApp(number)
       const info = results?.[0]
-      exists = info?.exists ?? false
+      exists = info ? Boolean(info.exists) : false
       if (info?.jid) jid = info.jid
     } catch (e) {
       exists = null // não foi possível verificar
